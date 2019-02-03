@@ -3,7 +3,7 @@
 
 """connect.manager wraps an Apache Kafka Connect REST interface.
 
-The module provides a class, ConnectManager, with a number of methods
+The module provides a class, KafkaConnectManager, with a number of methods
 to handle Kafka Connect connectors at a Confluent desployment.
 """
 
@@ -27,7 +27,7 @@ from time import sleep
 
 valid_connect_types = ["source", "sink", "all"]
 
-class ConnectManager (object):
+class KafkaConnectManager (object):
     """
     Class for handling a Confluent Kafka Connect server
     """
@@ -35,7 +35,7 @@ class ConnectManager (object):
     def __init__(self, manager_hostname=Config["connect_default_host"],
                        manager_port=Config["connect_default_port"]):
         """
-        The constructor for the ConnectManager class. It verifies whether connectivity
+        The constructor for the KafkaConnectManager class. It verifies whether connectivity
         and the Connect server are available.
 
         Parameters:

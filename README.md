@@ -1,7 +1,8 @@
 ## Kafka Connect Utils
 
 This package provide the means to interact with a **Confluent Schema Registry** (and thus register, query and delete Avro 
-schemas and subjects) and with a **Confluent Kafka Connect server** (and thus manage connectors).
+schemas and subjects) and with a **Kafka Connect server** (and thus manage sink and souce connectors) through their 
+REST front-ends.
 
 *(documentation created with `pydoc-markdownp`)*
 
@@ -23,7 +24,7 @@ Do not activate the `universal` flag, as this package runs only in Python 3. Inc
 universal=0
 ```
 
-Once your Wheel file is created, you can install it in any Python 3 environment by running:
+Once your Wheel file is created (`dist` subfolder), you can install it in any Python 3 environment by running:
 
 ```bash
 pip install kafkaconnect_utils-[lastest version]-py3-none-any.whl
@@ -31,265 +32,44 @@ pip install kafkaconnect_utils-[lastest version]-py3-none-any.whl
 
 ## Functionality
 The `kafkaconnect_utils` package provides two classes, `SchemaRegistryManager` (with a number of methods for registering, 
-querying and deleting subjects and Avro schemas in a Confluent Schema Registry) and `ConnectManager` (with functions
-for querying connector information and managing connector in a Confluent Connect server).
-
-## Specification: `kafkaconnect_utils.schema_registry_manager`
-
-`kafkaconnect_utils.schema_registry_manager` wraps a Confluent Schema Registry so that Python classes can be used instead
-of accessing the Schema Registry REST interface.
-
-The module provides a class, `SchemaRegistryManager`, with a number of methods to register, query and delete 
-Subjects and associated Avro schemas in a Confluent Schema Registry. In a Confluent Schema Registry, all Avro
-schemas must be associated to a Subject, which contains a versioned list of Avro schemas. The last added schema
-is the active Avro schema associated to the Subject.
-
-You can instantiate a `SchemaRegistryManager` object accessing a Schema Registry available at `localhost`in the 
-following way:
-
-```python
-from kafkaconnect_utils.schema_registry_manager import SchemaRegistryManager
-
-manager = SchemaRegistryManager()
-``` 
-<h3 id="schema_registry.manager.SchemaRegistryManager">SchemaRegistryManager</h3>
-
-```python
-SchemaRegistryManager(self, manager_host='localhost', manager_port='8081')
-```
-
-Class for handling a Confluent Schema Registry. The constructor works in the following way:
-
-*Parameters*:
-- `manager_host` (`str`): The hostname where the Confluent Schema Manager is available. Default value is 'localhost'.
-- `manager_port` (`str`): The port where the Confluent Schema Manager is available. Default value is '8081'.
-
-*Returns*:
-- `manager` (`SchemaRegistryManager`): An object belonging to the `SchemaRegistryManager` class.
-
-*Raises*:
-- `ConnectionError`: An error ocurred if no Internet connection is available.
- 
-
-<h4 id="kafkaconnect_utils.schema_registry_manager.SchemaRegistryManager.get_config">get_config</h4>
-
-```python
-SchemaRegistryManager.get_config(self)
-```
-
-The method to access the Schema Registry configuration.
-
-*Returns*:
-- `config` (`dict`): The Schema Registry configuration, as a dictionary.
-
-*Raises*:
-- `NoSchemaRegistryAvailable`: An error ocurred if the Schema Registry is not
-        available.
-- `HTTPError`: An error ocurred if the request did not returned a 200 status
-        code (OK)
-
-<h4 id="kafkaconnect_utils.schema_registry_manager.SchemaRegistryManager.get_subjects">get_subjects</h4>
-
-```python
-SchemaRegistryManager.get_subjects(self)
-```
-
-The method to get the Subjects registered at the Schema Registry.
-
-*Returns*:
-- `subjects` (`list`): A list passing on the subjects (`str`) available at the Schema Registry.
-
-*Raises*:
-- `NoSchemaRegistryAvailable`: An error ocurred if the Schema Registry is not available.
-- `HTTPError`: An error ocurred if the request did not returned a 200 status code (OK)
-
-<h4 id="kafkaconnect_utils.schema_registry_manager.SchemaRegistryManager.get_subject_versions">get_subject_versions</h4>
-
-```python
-SchemaRegistryManager.get_subject_versions(self, subject)
-```
-
-The method to get all the versions of a given Subject.
-
-*Parameters*:
-- `subject` (`str`): The Subject the request refers to.
-
-*Returns*:
-- `versions` (`list`): A list of available versions (`int`).
-
-*Raises*:
-- `ValueError`: An error ocurred if you did not provide a subject.
-- `NoSchemaRegistryAvailable`: An error ocurred if the Schema Registry is not available.
-- `HTTPError`: An error ocurred if the request did not returned a 200 status code (OK)
-
-<h4 id="kafkaconnect_utils.schema_registry_manager.SchemaRegistryManager.get_subject_schema">get_subject_schema</h4>
-
-```python
-SchemaRegistryManager.get_subject_schema(self, subject, version=None)
-```
-
-The method to get a schema of a Subject version.
-
-The method returns the schema associated to the most recent version unless a specific
-version identifier is provided.
-
-*Parameters*:
-- `subject` (`str`): The Subject the request refers to.
-- `version` (`int`): The Subject version the request refers to.
-
-*Returns*:
-- `schema` (`dict`): A JSON-encoded Avro schema.
-
-*Raises*:
-- `ValueError`: An error ocurred if you did not provide a subject.
-- `NoSchemaRegistryAvailable`: An error ocurred if the Schema Registry is not available.
-- `HTTPError`: An error ocurred if the request did not returned a 200 status code (OK).
-
-<h4 id="kafkaconnect_utils.schema_registry_manager.SchemaRegistryManager.get_subject_schema_id">get_subject_schema_id</h4>
-
-```python
-SchemaRegistryManager.get_subject_schema_id(self, subject, version=None)
-```
-
-The method to get the Avro schema identifier of a Subject version.
-
-The method returns the identifier of the schema associated to the most recent Subject version 
-unless a specific version identifier is provided in the request.
-
-*Parameters*:
-- `subject` (`str`): The Subject the request refers to.
-- `version` (`int`): The Subject version the request refers to.
-
-*Returns*:
-- `id` (`int`): The identifier of the Avro schema.
-
-*Raises*:
-- `ValueError`: An error ocurred if you did not provide a subjec.
-- `NoSchemaRegistryAvailable`: An error ocurred if the Schema Registry is not available.
-- `HTTPError`: An error ocurred if the request did not returned a 200 status code (OK)
-
-<h4 id="kafkaconnect_utils.schema_registry_manager.SchemaRegistryManager.get_schema">get_schema</h4>
-
-```python
-SchemaRegistryManager.get_schema(self, schema_id)
-```
-
-The method to an Avro schema from the Schema Registry.
-
-*Parameters*:
-- `schema_id` (`int`): The identifier of the schema the request refers to.
-
-*Returns*:
-- `schema` (`dict`): A JSON-encoded Avro schema.
-
-*Raises*:
-- `ValueError`: An error ocurred if you did not provide an integer as schema identifier.
-- `NoSchemaRegistryAvailable`: An error ocurred if the Schema Registry is not available.
-- `HTTPError`: An error ocurred if the request did not returned a 200 status code (OK)
-
-<h4 id="kafkaconnect_utils.schema_registry_manager.SchemaRegistryManager.register_schema">register_schema</h4>
-
-```python
-SchemaRegistryManager.register_schema(self, subject, avro_schema)
-```
-
-The method registers an Avro schema at a Schema Registry.
-
-*Parameters*:
-- `subject` (`str`): The subject the schema will be associated to.
-- `avro_schema` (`str` or `dict`): A JSON-encoded Avro schema. It is possible to pass it to 
-        the method by means of a dictionary or as a string encoding a JSON dictionary.
-
-*Returns*:
-- `id` (`int`): The schema identifier (different from the subject version).
-
-*Raises*:
-- `ValueError`: An error ocurred if you did not provide a subject or schema.
-- `TypeError`: An error ocurred if the provided schema is not a string or a dictionary.
-- `SchemaParseException`: An error ocurred if the local validation of the Avro schema
-        is not successful.
-- `NoSchemaRegistryAvailable`: An error ocurred if the Schema Registry is not available.
-- `HTTPError`: An error ocurred if the request to the Schema Regggistry did not returned
-        a 200 status code (OK). Relevant codes are 409 (Incompatible Avro schema) and
-        422 (Invalid Avro schema).
-
-<h4 id="kafkaconnect_utils.schema_registry_manager.SchemaRegistryManager.delete_subject">delete_subject</h4>
-
-```python
-SchemaRegistryManager.delete_subject(self, subject)
-```
-
-The method to delete a Subject.
-
-*Parameters*:
-- `subject` (`str`): The Subject the request refers to.
-
-*Returns*:
-- `versions` (`list`): A list passing on the identifier of the deleted version (`int`)
-
-*Raises*:
-- `ValueError`: An error ocurred if you did not provide a subject.
-- `NoSchemaRegistryAvailable`: An error ocurred if the Schema Registry is not available.
-- `HTTPError`: An error ocurred if the request did not returned a 200 status
-        code (OK). Relevant codes are 404 (subject not found)
-
-<h4 id="kafkaconnect_utils.schema_registry_manager.SchemaRegistryManager.delete_subject_version">delete_subject_version</h4>
-
-```python
-SchemaRegistryManager.delete_subject_version(self, subject, version=None)
-```
-
-The method to delete a version of a Subject.
-
-*Parameters*:
-- `subject` (`str`): The Subject the request refers to.
-
-*Returns*:
-- `version` (`int`): Identifier of the deleted version.
-
-*Raises*:
-- `ValueError`: An error ocurred if you did not provide a subject.
-- `NoSchemaRegistryAvailable`: An error ocurred if the Schema Registry is not available.
-- `HTTPError`: An error ocurred if the request did not returned a 200 status
-        code (OK). Relevant codes are 404 (subject or version not found), and
-        422 (invalid version)
-
+querying and deleting subjects and Avro schemas in a Confluent Schema Registry) and `KafkaConnectManager` (with functions
+for querying connector information and managing connectors in a Kafka Connect server).
 
 ## Specification: `kafkaconnect_utils.connect_manager`
 
-`kafkaconnect_utils.schema_registry_manager` wraps a Confluent Kafka Connect server REST interface.
+`kafkaconnect_utils.schema_registry_manager` wraps the REST front-end of a Kafka Connect server.
 
-The module provides a class, `ConnectManager`, with a number of methods
+The module provides a class, `KafkaConnectManager`, with a number of methods
 to handle Kafka Connect connectors at a Confluent desployment.
 
 You can instantiate an object in the following way:
 
 ```python
-from kafkaconnect_utils.connect_manager import ConnectManager
-manager = ConnectManager()
+from kafkaconnect_utils.connect_manager import KafkaConnectManager
+manager = KafkaConnectManager()
 ``` 
-<h3 id="schema_registry.manager.SchemaRegistryManager">ConnectManager</h3>
+### KafkaConnectManager
 
 ```python
-ConnectManager(self, manager_host='localhost', manager_port='8083')
+KafkaConnectManager(self, manager_host='localhost', manager_port='8083')
 ```
 
-Class for handling a Confluent Connect server. The constructor:
+Class for handling a Kafka Connect server. The constructor:
 
 *Parameters*:
-* `manager_host` (`str`): The hostname where the Confluent Connect server is available. Default value is 'localhost'.
-* `manager_port` (`str`): The port where the Confluent Connect server is available. Default value is '8083'.
+* `manager_host` (`str`): The hostname where the Kafka Connect server is available. Default value is 'localhost'.
+* `manager_port` (`str`): The port where the Kafka Connect server is available. Default value is '8083'.
 
 *Returns*:
-* `manager` (`ConnectManager`): An object belonging to the `ConnectManager`.
+* `manager` (`KafkaConnectManager`): An object belonging to the `KafkaConnectManager`.
 
 *Raises*:
 * `ConnectionError`: An error ocurred if no Internet connection is available.
 
-<h4 id="kafkaconnect_utils.connect_manager.ConnectManager.get_connectors">get_connectors</h4>
+#### get_connectors
 
 ```python
-ConnectManager.get_connectors(self, type_='source')
+KafkaConnectManager.get_connectors(self, type_='source')
 ```
 
 The method to get the connectors registered at the Connect server.
@@ -310,10 +90,10 @@ The method to get the connectors registered at the Connect server.
 - `HTTPError`: An error ocurred if the request did not returned a 200
         status code (OK)
 
-<h4 id="kafkaconnect_utils.connect_manager.ConnectManager.get_connector_info">get_connector_info</h4>
+#### get_connector_info
 
 ```python
-ConnectManager.get_connector_info(self, id)
+KafkaConnectManager.get_connector_info(self, id)
 ```
 
 The method to get the information about a specific connector
@@ -350,10 +130,10 @@ registered at the Connect server.
 - `HTTPError`: An error ocurred if the request did not returned a 200
         status code (OK)
 
-<h4 id="kafkaconnect_utils.connect_manager.ConnectManager.get_connector_status">get_connector_status</h4>
+#### get_connector_status
 
 ```python
-ConnectManager.get_connector_status(self, id)
+KafkaConnectManager.get_connector_status(self, id)
 ```
 
 The method to get the status of a specific connector
@@ -372,10 +152,10 @@ The method to get the status of a specific connector
 - `HTTPError`: An error ocurred if the request did not returned a 200
         status code (OK)
 
-<h4 id="kafkaconnect_utils.connect_manager.ConnectManager.load_connector">load_connector</h4>
+#### load_connector
 
 ```python
-ConnectManager.load_connector(self, id, config)
+KafkaConnectManager.load_connector(self, id, config)
 ```
 
 The method to create and load a connector in the Connect platform.
@@ -395,10 +175,10 @@ The method to create and load a connector in the Connect platform.
 - `HTTPError`: An error ocurred if the request did not returned a 200
         status code (OK)
 
-<h4 id="kafkaconnect_utils.connect_manager.ConnectManager.pause_connector">pause_connector</h4>
+#### pause_connector
 
 ```python
-ConnectManager.pause_connector(self, id)
+KafkaConnectManager.pause_connector(self, id)
 ```
 
 The method to pause a specific connector
@@ -417,10 +197,10 @@ The method to pause a specific connector
 - `HTTPError`: An error ocurred if the request did not returned a 200
         status code (OK)
 
-<h4 id="kafkaconnect_utils.connect_manager.ConnectManager.resume_connector">resume_connector</h4>
+#### resume_connector
 
 ```python
-ConnectManager.resume_connector(self, id)
+KafkaConnectManager.resume_connector(self, id)
 ```
 
 The method to resume a paused connector
@@ -439,10 +219,10 @@ The method to resume a paused connector
 - `HTTPError`: An error ocurred if the request did not returned a 200
         status code (OK)
 
-<h4 id="kafkaconnect_utils.connect_manager.ConnectManager.restart_connector">restart_connector</h4>
+#### restart_connector
 
 ```python
-ConnectManager.restart_connector(self, id)
+KafkaConnectManager.restart_connector(self, id)
 ```
 
 The method to restart a specific connector
@@ -461,10 +241,10 @@ The method to restart a specific connector
 - `HTTPError`: An error ocurred if the request did not returned a 200
         status code (OK)
 
-<h4 id="kafkaconnect_utils.connect_manager.ConnectManager.delete_connector">delete_connector</h4>
+#### delete_connector
 
 ```python
-ConnectManager.delete_connector(self, id)
+KafkaConnectManager.delete_connector(self, id)
 ```
 
 The method to delete a specific connector
@@ -482,3 +262,224 @@ The method to delete a specific connector
         not available.
 - `HTTPError`: An error ocurred if the request did not returned a 200
         status code (OK)
+
+## Specification: `kafkaconnect_utils.schema_registry_manager`
+
+`kafkaconnect_utils.schema_registry_manager` wraps a Confluent Schema Registry so that Python classes can be used instead
+of accessing the Schema Registry REST interface.
+
+The module provides a class, `SchemaRegistryManager`, with a number of methods to register, query and delete 
+Subjects and associated Avro schemas in a Confluent Schema Registry. In a Confluent Schema Registry, all Avro
+schemas must be associated to a Subject, which contains a versioned list of Avro schemas. The last added schema
+is the active Avro schema associated to the Subject.
+
+You can instantiate a `SchemaRegistryManager` object accessing a Schema Registry available at `localhost`in the 
+following way:
+
+```python
+from kafkaconnect_utils.schema_registry_manager import SchemaRegistryManager
+
+manager = SchemaRegistryManager()
+``` 
+### SchemaRegistryManager
+
+```python
+SchemaRegistryManager(self, manager_host='localhost', manager_port='8081')
+```
+
+Class for handling a Confluent Schema Registry. The constructor works in the following way:
+
+*Parameters*:
+- `manager_host` (`str`): The hostname where the Confluent Schema Manager is available. Default value is 'localhost'.
+- `manager_port` (`str`): The port where the Confluent Schema Manager is available. Default value is '8081'.
+
+*Returns*:
+- `manager` (`SchemaRegistryManager`): An object belonging to the `SchemaRegistryManager` class.
+
+*Raises*:
+- `ConnectionError`: An error ocurred if no Internet connection is available.
+ 
+
+#### get_config
+
+```python
+SchemaRegistryManager.get_config(self)
+```
+
+The method to access the Schema Registry configuration.
+
+*Returns*:
+- `config` (`dict`): The Schema Registry configuration, as a dictionary.
+
+*Raises*:
+- `NoSchemaRegistryAvailable`: An error ocurred if the Schema Registry is not
+        available.
+- `HTTPError`: An error ocurred if the request did not returned a 200 status
+        code (OK)
+
+#### get_subjects
+
+```python
+SchemaRegistryManager.get_subjects(self)
+```
+
+The method to get the Subjects registered at the Schema Registry.
+
+*Returns*:
+- `subjects` (`list`): A list passing on the subjects (`str`) available at the Schema Registry.
+
+*Raises*:
+- `NoSchemaRegistryAvailable`: An error ocurred if the Schema Registry is not available.
+- `HTTPError`: An error ocurred if the request did not returned a 200 status code (OK)
+
+#### get_subject_versions
+
+```python
+SchemaRegistryManager.get_subject_versions(self, subject)
+```
+
+The method to get all the versions of a given Subject.
+
+*Parameters*:
+- `subject` (`str`): The Subject the request refers to.
+
+*Returns*:
+- `versions` (`list`): A list of available versions (`int`).
+
+*Raises*:
+- `ValueError`: An error ocurred if you did not provide a subject.
+- `NoSchemaRegistryAvailable`: An error ocurred if the Schema Registry is not available.
+- `HTTPError`: An error ocurred if the request did not returned a 200 status code (OK)
+
+#### get_subject_schema
+
+```python
+SchemaRegistryManager.get_subject_schema(self, subject, version=None)
+```
+
+The method to get a schema of a Subject version.
+
+The method returns the schema associated to the most recent version unless a specific
+version identifier is provided.
+
+*Parameters*:
+- `subject` (`str`): The Subject the request refers to.
+- `version` (`int`): The Subject version the request refers to.
+
+*Returns*:
+- `schema` (`dict`): A JSON-encoded Avro schema.
+
+*Raises*:
+- `ValueError`: An error ocurred if you did not provide a subject.
+- `NoSchemaRegistryAvailable`: An error ocurred if the Schema Registry is not available.
+- `HTTPError`: An error ocurred if the request did not returned a 200 status code (OK).
+
+#### get_subject_schema_id
+
+```python
+SchemaRegistryManager.get_subject_schema_id(self, subject, version=None)
+```
+
+The method to get the Avro schema identifier of a Subject version.
+
+The method returns the identifier of the schema associated to the most recent Subject version 
+unless a specific version identifier is provided in the request.
+
+*Parameters*:
+- `subject` (`str`): The Subject the request refers to.
+- `version` (`int`): The Subject version the request refers to.
+
+*Returns*:
+- `id` (`int`): The identifier of the Avro schema.
+
+*Raises*:
+- `ValueError`: An error ocurred if you did not provide a subjec.
+- `NoSchemaRegistryAvailable`: An error ocurred if the Schema Registry is not available.
+- `HTTPError`: An error ocurred if the request did not returned a 200 status code (OK)
+
+#### get_schema
+
+```python
+SchemaRegistryManager.get_schema(self, schema_id)
+```
+
+The method to an Avro schema from the Schema Registry.
+
+*Parameters*:
+- `schema_id` (`int`): The identifier of the schema the request refers to.
+
+*Returns*:
+- `schema` (`dict`): A JSON-encoded Avro schema.
+
+*Raises*:
+- `ValueError`: An error ocurred if you did not provide an integer as schema identifier.
+- `NoSchemaRegistryAvailable`: An error ocurred if the Schema Registry is not available.
+- `HTTPError`: An error ocurred if the request did not returned a 200 status code (OK)
+
+#### register_schema
+
+```python
+SchemaRegistryManager.register_schema(self, subject, avro_schema)
+```
+
+The method registers an Avro schema at a Schema Registry.
+
+*Parameters*:
+- `subject` (`str`): The subject the schema will be associated to.
+- `avro_schema` (`str` or `dict`): A JSON-encoded Avro schema. It is possible to pass it to 
+        the method by means of a dictionary or as a string encoding a JSON dictionary.
+
+*Returns*:
+- `id` (`int`): The schema identifier (different from the subject version).
+
+*Raises*:
+- `ValueError`: An error ocurred if you did not provide a subject or schema.
+- `TypeError`: An error ocurred if the provided schema is not a string or a dictionary.
+- `SchemaParseException`: An error ocurred if the local validation of the Avro schema
+        is not successful.
+- `NoSchemaRegistryAvailable`: An error ocurred if the Schema Registry is not available.
+- `HTTPError`: An error ocurred if the request to the Schema Regggistry did not returned
+        a 200 status code (OK). Relevant codes are 409 (Incompatible Avro schema) and
+        422 (Invalid Avro schema).
+
+<h4 id="kafkaconnect_utils.schema_registry_manager.SchemaRegistryManager.delete_subject">delete_subject
+
+```python
+SchemaRegistryManager.delete_subject(self, subject)
+```
+
+The method to delete a Subject.
+
+*Parameters*:
+- `subject` (`str`): The Subject the request refers to.
+
+*Returns*:
+- `versions` (`list`): A list passing on the identifier of the deleted version (`int`)
+
+*Raises*:
+- `ValueError`: An error ocurred if you did not provide a subject.
+- `NoSchemaRegistryAvailable`: An error ocurred if the Schema Registry is not available.
+- `HTTPError`: An error ocurred if the request did not returned a 200 status
+        code (OK). Relevant codes are 404 (subject not found)
+
+#### delete_subject_version
+
+```python
+SchemaRegistryManager.delete_subject_version(self, subject, version=None)
+```
+
+The method to delete a version of a Subject.
+
+*Parameters*:
+- `subject` (`str`): The Subject the request refers to.
+
+*Returns*:
+- `version` (`int`): Identifier of the deleted version.
+
+*Raises*:
+- `ValueError`: An error ocurred if you did not provide a subject.
+- `NoSchemaRegistryAvailable`: An error ocurred if the Schema Registry is not available.
+- `HTTPError`: An error ocurred if the request did not returned a 200 status
+        code (OK). Relevant codes are 404 (subject or version not found), and
+        422 (invalid version)
+
